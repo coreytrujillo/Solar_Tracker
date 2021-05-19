@@ -77,9 +77,9 @@ if 1==1:
 	if az_meas > az_lo and az_meas < az_hi: # If az is within expected range
 		if LTEW < LTEW_lo: # Adjust west based on light tower reading
 			print('Move West')
-			move(handle, AIN_LT_EW, stop_W, FIO_W)
+			LT_move(handle, AIN_EW, stop_W, FIO_W)
 		elif LTEW > LTEW_hi: # Adjust east based on light tower reading
-			move(handle, AIN_LT_EW, stop_E, FIO_E)
+			LT_move(handle, AIN_EW, stop_E, FIO_E)
 			print('Move East')
 	elif az_meas < az_lo: # if az is lower than expected
 		print('Out of range! Move West')
@@ -90,10 +90,10 @@ if 1==1:
 	# Motion N/S
 	if el_meas > el_lo and el_meas < el_hi: # if el is within expectations
 		if LTNS < LTNS_lo:
-			move(handle, AIN_LT_NS, stop_N, FIO_N)
+			LT_move(handle, AIN_LT_NS, stop_N, FIO_N)
 			print('Move North')
 		elif LTNS > LTNS_hi:
-			move(handle, AIN_LT_NS, stop_S, FIO_S)
+			LT_move(handle, AIN_LT_NS, stop_S, FIO_S)
 			print('Move South')
 	elif el_meas < el_lo:
 		print('Out of range! Move North')
@@ -103,6 +103,10 @@ if 1==1:
 	# time.sleep(5)
 
 
-def move(handle, LT_AIN, stop, FIO):
+def LT_move(handle, LT_AIN, stop, FIO):
 	while ljm.eReadName(handle, LT_AIN) < stop:
-		ljm.eReadName(handle, FIO)
+		ljm.eWriteName(handle, FIO)
+
+def CA_move(handle):
+	while ang_meas < ang_stop:
+		
