@@ -5,9 +5,13 @@ import numpy as np # Numbers and math
 import time # For sleep function
 import os # For removing files
 import sys # Scripting functions
+import ctypes
+import importlib
 import pandas as pd # For data analysis
 import ephem as ep # For predicting Sun's position
 from Header import * # Global variables
+import Tracker_Header
+from Tracker_Header import *
 
 ###################################
 # Functions
@@ -180,7 +184,7 @@ def run_lua(handle, lua_s_name):
 	ljm.eWriteName(handle, 'LUA_DEBUG_ENABLE_DEFAULT', 0)
 	ljm.eWriteName(handle, 'LUA_RUN', 1)
 
-# Normalize magnetometer readings to outupt between 0 and 1
+# Normalize magnetometer readings to outupt between -1 and 1
 def normalize_mag(lo, hi, input):
 	# lo = lowest possible magnetometer output
 	# hi = highest possible magnetometer output
@@ -192,7 +196,7 @@ def normalize_mag(lo, hi, input):
 	if output > 1 or output < -1:
 		print('Unexpected Value in Nomalization:', input)
 		fl = open(fl_path, 'a')
-		fl.write('Mag value out of range! Received: ' + str(input) + '\n')
+		fl.write('Mag value out of range! Received: ' + str(input) + 'Should have received' + str(lo) + 'or' + str(hi) + '\n')
 		fl.close
 	return output
 
@@ -201,8 +205,8 @@ def normalize_mag(lo, hi, input):
 def read_LJ_CA(handle):
 	# time.sleep(0.1) # Pause between readings 
 	mX0 = ljm.eReadName(handle, 'USER_RAM0_F32') # dirty mag x
-	mZ0 = ljm.eReadName(handle, 'USER_RAM1_F32') # dirty mag y
-	mY0 = ljm.eReadName(handle, 'USER_RAM2_F32') # dirty mag z
+	mZ0 = ljm.eReadName(handle, 'USER_RAM1_F32') # dirty mag z
+	mY0 = ljm.eReadName(handle, 'USER_RAM2_F32') # dirty mag y
 	aX = ljm.eReadName(handle, 'USER_RAM3_F32') # Accelerometer X
 	aY = ljm.eReadName(handle, 'USER_RAM4_F32') # Accel Y
 	aZ = ljm.eReadName(handle, 'USER_RAM5_F32') # Accel Z
@@ -210,16 +214,23 @@ def read_LJ_CA(handle):
 	
 	# Normalize magnetic values
 	# Values calibrated based on experience
-	mX = normalize_mag(-371, 608, mX0)
-	mY = normalize_mag(-543, 431, mY0)
-	mZ = normalize_mag(-590, 317, mZ0)
+	# mX = (-371, 520, mX0)
+	# mY = (-543, 431, mY0)
+	# mZ = (-671, 317, mZ0)
+	# mX = normalize_mag(-346, 563, mX0)
+	# mY = normalize_mag(-525, 378, mY0)
+	# mZ = normalize_mag(-671, 309, mZ0)
+	
+	mX = mX0
+	mY = mY0
+	mZ = mZ0
 	
 	return mX, mY, mZ, aX, aY, aZ
 
 # Average Compass and accelerometer values to reduce noise
 def ave_CA(handle):
 	# Number of data points to average
-	loop = 50
+	loop = 10	
 	
 	# Initiate running sums
 	summX = 0
@@ -231,6 +242,7 @@ def ave_CA(handle):
 	
 	# Sum values 
 	for i in range (0,loop):
+		time.sleep(0.1)
 		[mX, mY, mZ, aX, aY, aZ] = read_LJ_CA(handle)
 		summX += mX
 		summY += mY
@@ -238,6 +250,7 @@ def ave_CA(handle):
 		sumaX += aX
 		sumaY += aY
 		sumaZ += aZ
+
 	
 	# Average values
 	avemX = summX/loop
@@ -246,9 +259,7 @@ def ave_CA(handle):
 	aveaX = sumaX/loop
 	aveaY = sumaY/loop
 	aveaZ = sumaZ/loop
-	
-	print('AMX',avemX)
-	
+
 	return avemX, avemY, avemZ, aveaX, aveaY, aveaZ
 
 
@@ -280,7 +291,6 @@ def az_ang(up, top, north):
 	p5 = np.cross(p2,p4) # Cross product between north and back projections in level plane
 	p6 = np.dot(p5,up) # Comparison between p5 and up
 	
-	print('dupn', np.dot(north,top))
 	
 	# Calculate Azimuth angle
 	az = np.arccos(np.dot(p4,p2)/(np.linalg.norm(p4)*np.linalg.norm(p2)))*180/np.pi
@@ -291,6 +301,79 @@ def az_ang(up, top, north):
 	if p6 < 0:
 		az = 360 - az
 	return az
+
+# Function for debuging: Azimuth angle comparison
+######## Come back here!
+def az_ang2(up, top, north):
+	# up = vector pointing directly up
+	# face = vector that defines plane of the face of the collectors
+	# north = north vector
+	
+	# Calculate projection of angles in necessary planes
+	p1 = np.dot(north, up)*up/(np.linalg.norm(up)**2) # projection of north vector on up vector
+	p2 = north - p1 # North projection in level plane
+	p3 = np.dot(top, up)*up/(np.linalg.norm(up)**2) # projection of vector pointing out of collectors on up vector
+	p4 = top - p3 # Direction of back of solar collector in level plane
+	
+	# Determine clockwise or counterclockwise angle
+	p5 = np.cross(p2,p4) # Cross product between north and back projections in level plane
+	p6 = np.dot(p5,up) # Comparison between p5 and up
+	
+	
+	# Calculate Azimuth angle
+	az = np.arccos(np.dot(p4,p2)/(np.linalg.norm(p4)*np.linalg.norm(p2)))*180/np.pi
+	# az = np.dot(north,top)
+	# print('AZ', az)
+	
+	# Correct to make clockwise from north
+	if p6 < 0:
+		az = 360 - az
+	return az
+
+def solar_angs(handle):
+	[mX, mY, mZ, aX, aY, aZ] = read_LJ_CA(handle)
+	
+	# Azimuth and elevation Readings
+	up = np.array([-aX,-aY,-aZ]) # Accelerometer readings
+	face = np.array([0,0,-1]) # Opposite direction of quartz rods
+	top = np.array([0,-1,0]) # Opposite direction pointing at top of collectors
+	north = np.array([mX,mY,mZ]) # Switch these around!!!!!!!!!!!!
+	el = el_ang(up, face) # Elevation angle
+	azim = az_ang(up, top, north) # Azimuth angle
+	
+	# Averaged readings
+	[avemX, avemY, avemZ, aveaX, aveaY, aveaZ] = ave_CA(handle)
+	avenorth = np.array([avemX, avemY, avemZ])
+	aveup = np.array([-aveaX, -aveaY, -aveaZ])
+	aveel = el_ang(aveup, face)
+	aveaz = az_ang(aveup, top, avenorth)
+	faaa = np.array([0,0,1])
+	
+	# Az debug comparison
+	az_2 = az_ang2(up,faaa,north)
+	
+	# True Az/ El
+	# PyEphem constants for calculating Sun's angles
+	lab = ep.Observer() # Observing from lab
+	lablat = 39.781763 # lab latitude
+	lablon = -104.910462 # lab longitude
+	lab.lat = str(lablat) # input lat to pyephem
+	lab.lon = str(lablon) # input lon to pyephem
+	lab.elevation = 1610 # lab elevation
+	Ang = ep.Sun(lab)
+	az_True = float(Ang.az) * 180/ np.pi # True azimuth in degress
+	el_True = float(Ang.alt) *  180/ np.pi # True elevation in degrees
+	
+	if 1 == 1:
+		print('El:', el)
+		print('El Ave:', aveel)
+		print('ElT:', el_True)
+		print('Az:', azim)
+		print('Az Ave:', aveaz)
+		print('AzT:', az_True)
+		print('Az2:', az_2)
+	
+	return el, azim, aveel, aveaz, az_True, el_True 
 
 # Read Light Tower voltages from LabJack
 def read_LJ_LT(handle, AIN_D, AIN_NS, AIN_EW):
@@ -303,6 +386,11 @@ def read_LJ_LT(handle, AIN_D, AIN_NS, AIN_EW):
 	LT_direct = ljm.eReadName(handle, AIN_D) # Input from top sensor
 	LT_NS = ljm.eReadName(handle, AIN_NS) # North/South Voltage reading
 	LT_EW = ljm.eReadName(handle, AIN_EW) # East/West votage reading
+	
+	if 1 == 1:
+		print('Direct: ', LT_direct)
+		print('NS: ', LT_NS)
+		print('EW: ', LT_EW)
 	
 	return LT_direct, LT_NS, LT_EW
 
@@ -365,15 +453,6 @@ def read_PM(PM_fpath):
 	power = PM_data['0293A13R:Watts'][-1] # Retrieve latest power measurement
 	return power
 
-####################### delete?
-# Convert 16 bit readings from chip
-def convert_16_bit(msb, lsb, conv):
-	if msb >= 128:
-		res = (-0x7FFF+((msb-128)*256+lsb))/conv
-	else:
-		res = (msb*256+lsb)/conv
-	return res
-
 # Build header for data file
 # This function depends on global variables
 def build_header():
@@ -387,7 +466,8 @@ def build_header():
 		header = header + ',PyrO,PyrE'
 
 	if ComAccelON == 1:
-		header = header + ',Mag X,Mag Y,Mag Z,Accel X,Accel Y,Accel Z,Elevation,El True,Azimuth,Az True'
+		# header = header + ',Mag X,Mag Y,Mag Z,Accel X,Accel Y,Accel Z,Elevation,El True,Azimuth,Az True'
+		header = header + ',Mag X,Mag Y,Mag Z,Accel X,Accel Y,Accel Z,Elevation,Azimuth,El Ave,Az Ave,El True,Az True'
 
 	if LTON == 1:
 		header = header + ',LT direct,LT NS,LT EW'
@@ -417,37 +497,12 @@ def collect_data():
 	# Read Compass and Accelerometer
 	if ComAccelON == 1:
 		[mX, mY, mZ, aX, aY, aZ] = read_LJ_CA(handle)
+		[el, azim, aveel, aveaz, az_True, el_True] = solar_angs(handle)
 		outstr = outstr + sep + str(mX) + sep + str(mY) + sep + str(mZ) + sep + str(aX) + sep + str(aY) + sep + str(aZ)
+
 		
-		# Azimuth and elevation Readings
-		up = np.array([-aX,-aY,-aZ]) # Accelerometer readings
-		face = np.array([0,0,-1]) # Opposite direction of quartz rods
-		top = np.array([0,-1,0]) # Opposite direction pointing at top of collectors
-		north = np.array([mX,mY,mZ]) # Switch these around!!!!!!!!!!!!
-		el = el_ang(up, face) # Elevation angle
-		azim = az_ang(up, top, north) # Azimuth angle
-		
-		# Averaged readings
-		# [avemX, avemY, avemZ, aveaX, aveaY, aveaZ] = ave_CA(handle)
-		# avenorth = np.array([avemX, avemY, avemZ])
-		# aveup = np.array([aveaX, aveaY, aveaZ])
-		# aveel = el_ang(aveup, face)
-		# aveaz = az_ang(aveup, top, avenorth)
-		
-		# True Az/ El
-		Ang = ep.Sun(lab)
-		az_True = float(Ang.az) * 180/ np.pi # True azimuth in degress
-		el_True = float(Ang.alt) *  180/ np.pi # True elevation in degrees
-		print('El:', el)
-		print('ElT:', el_True)
-		print('Az:', azim)
-		print('AzT:', az_True)
-		
-		print('dtn', np.dot(top,north))
-		print('up', up)
-		
-		# outstr = outstr + sep + str(el) + sep + str(aveel) + sep + str(el_True) + sep + str(azim) + sep + str(aveaz) + sep + str(az_True)
-		outstr = outstr + sep + str(el) + sep + str(el_True) + sep + str(azim) + sep + str(az_True)
+		outstr = outstr + sep + str(el) + sep + str(azim) + sep + str(aveel) + sep + str(aveaz) + sep + str(el_True)  + sep + str(az_True)
+		# outstr = outstr + sep + str(el) + sep + str(el_True) + sep + str(azim) + sep + str(az_True)
 		
 	# Read Light Tower
 	if LTON == 1:
@@ -475,16 +530,8 @@ if ComAccelON == 1:
 	CA_name = 'DAC0' # Set DAC0 to voltage for chip
 	CA_voltage = 3.3  # 3.3 Volts
 	ljm.eWriteName(handle, CA_name, CA_voltage) # Send info to LabJack
-	lua_s_name = 'CA_Virgin.lua' # Lua Compass/Accel reader
+	lua_s_name = 'CA_reader.lua' # Lua Compass/Accel reader
 	run_lua(handle, lua_s_name) # Send lua script to run on LabJack continuously
-	
-	# PyEphem constants for calculating Sun's angles
-	lab = ep.Observer() # Observing from lab
-	lablat = 39.781763 # lab latitude
-	lablon = -104.910462 # lab longitude
-	lab.lat = str(lablat) # input lat to pyephem
-	lab.lon = str(lablon) # input lon to pyephem
-	lab.elevation = 1610 # lab elevation
 
 # Check Power Meter On
 if PMON == 1:
@@ -494,16 +541,92 @@ if PMON == 1:
 header = build_header() # Create Header
 init_files(fd_path, fl_path, info, header) # Initiate files (if necessary)
 
+# Handle Ctrl C
+if not sys.platform.startswith("win32"):
+    raise ValueError("Unsupported platform: " + sys.platform)
+kernel32 = ctypes.CDLL("Kernel32.dll")
+
+def ctrlc_handler(dwCtrlType, handle):
+	print("Python ctrlc_handler called with dwCtrlType " + str(dwCtrlType))
+	ljm.eWriteName(handle, FIOW, 0)
+	ljm.eWriteName(handle, FIOE, 0)
+	ljm.eWriteName(handle, FION, 0)
+	ljm.eWriteName(handle, FIOS, 0)
+
+ctrlc_callback_type = ctypes.WINFUNCTYPE(None, ctypes.c_int)
+cc_h = ctrlc_callback_type(ctrlc_handler)
+success = kernel32.SetConsoleCtrlHandler(cc_h, True)
+if not success:
+    ValueError("SetConsoleCtrlHandler failed")
+
+
 ##################################
 ## Run
 ##################################
-iter = 0
+
+
+iter = 1
+ctime0 = time.perf_counter()
+
 while True:
-	iter = iter + 1
-	print('Iteration!', iter)
-	outstr = collect_data()
+	importlib.reload(Header)
+	from Header import *
+	importlib.reload(Tracker_Header)
+	from Tracker_Header import *
+	
+	outstr = collect_data() # Collect data
+	append_data_file(fd_path, outstr) # Add data to data file
+	
+	# Print output to screen
+	print('Iteration:', iter)
 	print(header)
 	print(outstr)
-	time.sleep(0.05)
-	# Include ctrl-C exception here
-	append_data_file(fd_path, outstr)	
+	
+	# Prepare for next loop
+	iter = iter + 1
+	# time.sleep(0.5)
+	
+	
+	if TrackON == 1:
+		ctime1 = time.perf_counter()
+		if ctime1 - ctime0 > cycletime:
+			
+			
+			# Move North
+			if ljm.eReadName(handle, AIN_NS) < LT_moveN:
+				while ljm.eReadName(handle, AIN_NS) < LT_stopN:
+					ljm.eWriteName(handle, FION,1)
+					print('Move North. LT NS: ', ljm.eReadName(handle, AIN_NS))
+				ljm.eWriteName(handle, FION, 0)
+			
+			# Move South
+			if ljm.eReadName(handle, AIN_NS) > LT_moveS:
+				while ljm.eReadName(handle, AIN_NS) > LT_stopS:
+					ljm.eWriteName(handle, FIOS,1)
+					print('Move South. LT NS: ', ljm.eReadName(handle, AIN_NS))
+				ljm.eWriteName(handle, FIOS, 0)
+			
+			# Move West
+			while ljm.eReadName(handle, AIN_EW) < LT_stopW:
+				print('Moving West. LT EW: ', ljm.eReadName(handle, AIN_EW))
+				ljm.eWriteName(handle, FIOW, 1)
+			ljm.eWriteName(handle, FIOW, 0)
+			
+			
+			# Move East
+			if ljm.eReadName(handle, AIN_EW) > LT_moveE:
+				while ljm.eReadName(handle, AIN_EW) > LT_stopE:
+					print('Moving East. LT EW: ', ljm.eReadName(handle, AIN_EW))
+					ljm.eWriteName(handle, FIOE, 1)
+				ljm.eWriteName(handle, FIOE, 0)
+	else:
+		ljm.eWriteName(handle, FIOW, 0)
+		ljm.eWriteName(handle, FIOE, 0)
+		ljm.eWriteName(handle, FION, 0)
+		ljm.eWriteName(handle, FIOS, 0)
+		
+			
+			
+			ctime0 = time.perf_counter()
+	
+	# Include ctrl-C exception here ??????????????????????????????????
