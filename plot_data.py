@@ -5,21 +5,24 @@ import numpy as np
 import datetime
 import warnings
 warnings.filterwarnings("ignore")
+import importlib
+import Header
 from Header import *
 
 fig1 = plt.figure()
 
 def animate(i, fpath, TCON, TC_num, PyrOn, ComAccelON, LTON, PMON):
-	
+	# importlib.reload(Header)
+	# from Header import *
 	# Import data
 	data = pd.read_csv(fpath, header = 0, index_col='Time', parse_dates=True)
 	
 	# Set plotting parameters
-	rez = len(data.index) # Data resolution
+	rez = 1000# Data resolution
 	if len(data.index) < rez:
 		rez = len(data.index)
-	spy = 2 # Number of subplots in x direction
-	spx = 2 # Number of subplots in y direction
+	spx = 2 # Number of subplots in x direction
+	spy = 2 # Number of subplots in y direction
 	spn = 1 # Subplot number
 
 	x = data.index.strftime('%H:%M:%S') # X-axis data formatted for time
@@ -27,7 +30,7 @@ def animate(i, fpath, TCON, TC_num, PyrOn, ComAccelON, LTON, PMON):
 	if TCON == 1:
 		for j in range(0, TC_num):
 			T_data_name = 'TC' + str(j+1)
-			fig1.add_subplot(spx,spy,spn)
+			fig1.add_subplot(spy,spx,spn)
 			plt.cla()
 			plt.plot(x[-rez:-1], data[T_data_name][-rez:-1])
 			plt.title('Thermocouple ' + str(j+1))
@@ -36,7 +39,7 @@ def animate(i, fpath, TCON, TC_num, PyrOn, ComAccelON, LTON, PMON):
 			spn +=1
 			
 	if PyrON == 1:
-		fig1.add_subplot(spx,spy,spn)
+		fig1.add_subplot(spy,spx,spn)
 		plt.cla()
 		plt.plot(x[-rez:-1],data['PyrE'][-rez:-1])
 		plt.title('Pyrheliometer Reading')
@@ -46,8 +49,8 @@ def animate(i, fpath, TCON, TC_num, PyrOn, ComAccelON, LTON, PMON):
 		
 	if ComAccelON == 1:
 		
-		if 0 == 1:
-			fig1.add_subplot(spx,spy,spn)
+		if 1 == 0:
+			fig1.add_subplot(spy,spx,spn)
 			plt.cla()
 			plt.plot(x[-rez:-1],data['Mag X'][-rez:-1])
 			plt.plot(x[-rez:-1],data['Mag Y'][-rez:-1])
@@ -68,7 +71,7 @@ def animate(i, fpath, TCON, TC_num, PyrOn, ComAccelON, LTON, PMON):
 			spn +=1
 		
 			
-			fig1.add_subplot(spx, spy, spn)
+			fig1.add_subplot(spy, spx, spn)
 			plt.cla()
 			plt.plot(x[-rez:-1],data['Accel X'][-rez:-1])
 			plt.plot(x[-rez:-1],data['Accel Y'][-rez:-1])
@@ -79,31 +82,31 @@ def animate(i, fpath, TCON, TC_num, PyrOn, ComAccelON, LTON, PMON):
 			plt.xticks([x[-rez], x[-1]])
 			spn +=1
 		
-		fig1.add_subplot(spx, spy, spn)
+		fig1.add_subplot(spy, spx, spn)
 		plt.cla()
 		
 		plt.plot(x[-rez:-1],data['Azimuth'][-rez:-1])
-		# plt.plot(x[-rez:-1],data['Az Ave'][-rez:-1])
-		plt.plot(x[-rez:-1],data['Az True'][-rez:-1])
-		plt.legend(['Azim','Az T'])
+		plt.plot(x[-rez:-1],data['Az Ave'][-rez:-1])
+		# plt.plot(x[-rez:-1],data['Az True'][-rez:-1])
+		plt.legend(['Azim','az ave','Az T'])
 		plt.ylabel('Azimuth Angle')
 		plt.title('Azimuth')
 		plt.xticks([x[-rez], x[-1]])
 		spn +=1
 		
-		fig1.add_subplot(spx, spy, spn)
+		fig1.add_subplot(spy, spx, spn)
 		plt.cla()
-		plt.plot(x[-rez:-1],data['Elevation'][-rez:-1]-3)
-		# plt.plot(x[-rez:-1],data['El Ave'][-rez:-1]-5)
+		plt.plot(x[-rez:-1],data['Elevation'][-rez:-1])
+		plt.plot(x[-rez:-1],data['El Ave'][-rez:-1])
 		plt.plot(x[-rez:-1],data['El True'][-rez:-1])
-		plt.legend(['El', 'El t'])
+		plt.legend(['El', 'El ave', 'El t'])
 		plt.ylabel('Elevation Angle')
 		plt.title('Elevation')
 		plt.xticks([x[-rez], x[-1]])
 		spn +=1
 		
 	if LTON == 1:
-		fig1.add_subplot(spx,spy,spn)
+		fig1.add_subplot(spy,spx,spn)
 		plt.cla()
 		plt.plot(x[-rez:-1],data['LT direct'][-rez:-1])
 		plt.plot(x[-rez:-1],data['LT NS'][-rez:-1])
@@ -114,8 +117,31 @@ def animate(i, fpath, TCON, TC_num, PyrOn, ComAccelON, LTON, PMON):
 		plt.xticks([x[-rez], x[-1]])
 		spn +=1
 		
+		fig1.add_subplot(spy,spx,spn)
+		plt.cla()
+		# plt.plot(x[-rez:-1],data['LT direct'][-rez:-1])
+		# plt.plot(x[-rez:-1],data['LT NS'][-rez:-1])
+		plt.plot(x[-rez:-1],data['LT EW'][-rez:-1])
+		plt.legend(['Direct','NS','EW'])
+		plt.ylabel('Light Tower')
+		plt.title('Light Volgage Reading')
+		plt.xticks([x[-rez], x[-1]])
+		spn +=1
+		
+		if 1 == 1:
+			df1 = data.nlargest(100, ['Power']) 
+			fig1.add_subplot(spy,spx,spn)
+			plt.cla()
+			plt.scatter(df1['LT EW'], df1['LT NS'], c = df1['Power'])
+			plt.xlabel('LT EW')
+			plt.ylabel('LT NS')
+			plt.title('Light Tower Power Heat Map')
+			plt.colorbar()
+			
+			spn +=1
+		
 	if PMON == 1:
-		fig1.add_subplot(spx,spy,spn)
+		fig1.add_subplot(spy,spx,spn)
 		plt.cla()
 		plt.plot(x[-rez:-1],data['Power'][-rez:-1])
 		plt.ylabel('Power Meter')
@@ -131,5 +157,5 @@ def animate(i, fpath, TCON, TC_num, PyrOn, ComAccelON, LTON, PMON):
 # LTON = 1
 # PMON = 0
 
-ani = FuncAnimation(plt.gcf(), animate, fargs = [fd_path, TCON, TC_num, PyrON, ComAccelON, LTON, PMON], interval=1000)
+ani = FuncAnimation(plt.gcf(), animate, fargs = [fd_path, TCON, TC_num, PyrON, ComAccelON, LTON, PMON], interval=50)
 plt.show()

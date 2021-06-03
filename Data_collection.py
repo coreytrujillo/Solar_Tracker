@@ -9,6 +9,7 @@ import ctypes
 import importlib
 import pandas as pd # For data analysis
 import ephem as ep # For predicting Sun's position
+import Header
 from Header import * # Global variables
 import Tracker_Header
 from Tracker_Header import *
@@ -230,7 +231,7 @@ def read_LJ_CA(handle):
 # Average Compass and accelerometer values to reduce noise
 def ave_CA(handle):
 	# Number of data points to average
-	loop = 10	
+	loop = 1	
 	
 	# Initiate running sums
 	summX = 0
@@ -522,7 +523,8 @@ def collect_data():
 ##################################
 
 # LJ Setup
-[handle, info] = find_LJ() # Connect to LabJack and collect information on it
+if LJON == 1:
+	[handle, info] = find_LJ() # Connect to LabJack and collect information on it
 
 # Compass/Accelerometer Setup
 if ComAccelON == 1:
@@ -538,15 +540,18 @@ if PMON == 1:
 	check_PM(PM_fpath)
 
 # Initiate log and data files
-header = build_header() # Create Header
-init_files(fd_path, fl_path, info, header) # Initiate files (if necessary)
+header = build_header() # Create Header\
+if LJON == 1:
+	init_files(fd_path, fl_path, info, header) # Initiate files (if necessary)
+else:
+	init_files(fd_path, fl_path, [0, 0, 0, 0, 0, 0], header) # Initiate files (if necessary)
 
 # Handle Ctrl C
 if not sys.platform.startswith("win32"):
     raise ValueError("Unsupported platform: " + sys.platform)
 kernel32 = ctypes.CDLL("Kernel32.dll")
 
-def ctrlc_handler(dwCtrlType, handle):
+def ctrlc_handler(dwCtrlType):
 	print("Python ctrlc_handler called with dwCtrlType " + str(dwCtrlType))
 	ljm.eWriteName(handle, FIOW, 0)
 	ljm.eWriteName(handle, FIOE, 0)
@@ -584,7 +589,7 @@ while True:
 	
 	# Prepare for next loop
 	iter = iter + 1
-	# time.sleep(0.5)
+	# time.sleep(0.1)
 	
 	
 	if TrackON == 1:
@@ -619,7 +624,9 @@ while True:
 					print('Moving East. LT EW: ', ljm.eReadName(handle, AIN_EW))
 					ljm.eWriteName(handle, FIOE, 1)
 				ljm.eWriteName(handle, FIOE, 0)
-	else:
+			
+			ctime0 = time.perf_counter()
+	elif LJON==1:
 		ljm.eWriteName(handle, FIOW, 0)
 		ljm.eWriteName(handle, FIOE, 0)
 		ljm.eWriteName(handle, FION, 0)
@@ -627,6 +634,6 @@ while True:
 		
 			
 			
-			ctime0 = time.perf_counter()
+			
 	
 	# Include ctrl-C exception here ??????????????????????????????????
