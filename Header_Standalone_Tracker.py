@@ -11,7 +11,7 @@ LTNS_opt = 5.5
 LTEW_opt = 5.5
 
 # Cycle Time (sec)
-cycletime = 5
+cycletime = 30
 
 # Light Tower variances and boundaries
 LTNS_var_N = 0.5#0.40

@@ -1,26 +1,34 @@
-#############################################
-# Variables to Change
-#############################################
-
-from datetime import datetime
-
+#########################
 # File Input
-# floc = './test/'
-floc = '../../Experiments/210527_LT_Calibration/' # Working Directory
-frootname = 'LT_Calibration' # File name root (do NOT include date code)
+#########################
 
-# Sensor on/of (1 = yes, 0 = no)
-LJON = 0 # LabJack
-TCON = 0 # Thermocouples
-PyrON = 0 # Pyrheliometer
+floc = './test/'
+# floc = '../../Experiments/210609_Dry_Soil/' # Working Directory
+frootname = 'test' # File name root (do NOT include date code)
+
+#########################
+# On / Off Variables
+#########################
+
+# Mechanism on/of (1 = on, 0 = off)
+LJON = 1 # LabJack
+TrackON = 1 # Tracker
+
+# Sensor on/of (1 = on, 0 = off)
+TCON = 1 # Thermocouples
+PyrON = 1 # Pyrheliometer
 ComAccelON = 0 # Compass and Accelerometer
 LTON = 1 # Light Tower
-PMON = 0 # Power Meter
-TrackON = 0 # Tracker
+PMON = 1 # Power Meter
 
-################################################################
+# Debuggers
+LT_debug = 1
+
+#####################################
+# Sensor AIN assignments
+###################################
 # TC Input
-TC_num = 4 # Number of Thermocouples
+TC_num = 8 # Number of Thermocouples
 TC_AIN_start = 0 # AIN start for thermocouples
 
 # Pyrheliometer Input
@@ -31,26 +39,61 @@ AIN_D = 'AIN9' # Direct LT AIN
 AIN_NS = 'AIN10' # NS LT AIN
 AIN_EW = 'AIN11' # EW LT AIN
 
-# Power meter
-PM_floc = floc
-# PM_fname =  datetime.now().strftime('%y%m%d') + '_Power_Data.csv'
-PM_fname =  datetime.now().strftime('%y%m%d') + '_Power_Data.csv'
-
 ###################################
-# Live Plot Variables 
+# Tracker Variables
 ###################################
+# Optimal light tower values (mV)
+LTNS_opt = 6
+LTEW_opt = 6
 
+# Cycle Time (sec)
+cycletime = 30
 
+# Light Tower variances and boundaries
+LTNS_var_N = 0.5#0.40
+LTNS_var_S = LTNS_var_N
+LTEW_var_E = 1
+LTEW_var_W = 2.5
+LTNS_backstop = 0.05
+LTEW_backstop = 0.4
 
+# NSEW Relay Controls
+FIOS = 'FIO2' # South
+FION = 'FIO3' # North
+FIOW = 'FIO4' # West
+FIOE = 'FIO5' # East
+
+# Light Tower move and stop values
+LT_moveN = LTNS_opt - LTNS_var_S
+LT_moveS = LTNS_opt + LTNS_var_N
+LT_moveE = LTEW_opt + LTEW_var_W
+LT_moveW = LTEW_opt - LTEW_var_E
+LT_stopN = LT_moveS - LTNS_backstop
+LT_stopS = LT_moveN + LTNS_backstop
+LT_stopE = LT_moveW + LTEW_backstop
+LT_stopW = LT_moveE - LTEW_backstop
+
+# Print NSEW values
+if LT_debug == 1:
+	print('Move East', LT_moveE)
+	print('Stop East', LT_stopE)
+	print('Move West', LT_moveW)
+	print('Stop West', LT_stopW)
+	print('Move North', LT_moveN)
+	print('Stop North', LT_stopN)
+	print('Move South', LT_moveS)
+	print('Stop South', LT_stopS)
+	print('---------------------')
 ## Don't Change anything below this line!
 ##############################################################################
 # File paths
-# fd_path = floc + datetime.now().strftime('%y%m%d') + '_' + frootname + '_data.csv' # Data file path
-fd_path = floc + '210527_' + frootname + '_data.csv'
-
+###########################
+from datetime import datetime
+fd_path = floc + datetime.now().strftime('%y%m%d') + '_' + frootname + '_data.csv' # Data file path
 fl_path = floc + datetime.now().strftime('%y%m%d') + '_' + frootname + '.log' # Log file path
 
-PM_fpath = PM_floc + PM_fname # Power meter file path
+# Power meter
 
-# CSV separator
-sep = ','
+PM_floc = floc
+PM_fname = datetime.now().strftime('%y%m%d') + '_Power_Data.csv'
+PM_fpath = PM_floc + PM_fname # Power meter file path

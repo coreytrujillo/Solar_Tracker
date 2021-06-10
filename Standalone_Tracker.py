@@ -40,15 +40,17 @@ if not success:
 # Run Tracker
 #########################################
 # Find sun
-TDF.Track(handle)
+TDF.Track(handle, AIN_NS, LT_moveN, LT_stopN, FION, LT_moveS, LT_stopS, FIOS, AIN_EW, LT_moveW, LT_stopW, FIOW, LT_moveE, LT_stopE, FIOE)
 ctime0 = time.perf_counter() # Set cycle start time 
 while True:
-
+	# importlib(Header_Standalone_Tracker)
+	# from Header_Standalone_Tracker import *
+	
 	ctime1 = time.perf_counter() # Check cycle end time 
 	dct = ctime1 - ctime0
 	print('Cycle Time: %0.1f seconds ' %dct)
 	
 	# If cycle time is up, track
 	if dct > cycletime:
-		TDF.Track(handle)
+		TDF.Track(handle, AIN_NS, LT_moveN, LT_stopN, FION, LT_moveS, LT_stopS, FIOS, AIN_EW, LT_moveW, LT_stopW, FIOW, LT_moveE, LT_stopE, FIOE)
 		ctime0 = time.perf_counter() # Reset cycle start time
