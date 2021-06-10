@@ -16,25 +16,25 @@ import Track_Data_Funcs as TDF
 # Handle Ctrl-C
 #########################
 
-if not sys.platform.startswith("win32"):
-    raise ValueError("Unsupported platform: " + sys.platform)
-kernel32 = ctypes.CDLL("Kernel32.dll")
+# if not sys.platform.startswith("win32"):
+    # raise ValueError("Unsupported platform: " + sys.platform)
+# kernel32 = ctypes.CDLL("Kernel32.dll")
 
-def ctrlc_handler(dwCtrlType):
-	print("Python ctrlc_handler called with dwCtrlType " + str(dwCtrlType))
-	ljm.eWriteName(handle, FION, 0)
-	ljm.eWriteName(handle, FIOS, 0)
-	ljm.eWriteName(handle, FIOE, 0)
-	ljm.eWriteName(handle, FIOW, 0)
-	ljm.closeAll()
+# def ctrlc_handler(dwCtrlType):
+	# print("Python ctrlc_handler called with dwCtrlType " + str(dwCtrlType))
+	# ljm.eWriteName(handle, FION, 0)
+	# ljm.eWriteName(handle, FIOS, 0)
+	# ljm.eWriteName(handle, FIOE, 0)
+	# ljm.eWriteName(handle, FIOW, 0)
+	# ljm.closeAll()
 		
 	
 
-ctrlc_callback_type = ctypes.WINFUNCTYPE(None, ctypes.c_int)
-cc_h = ctrlc_callback_type(ctrlc_handler)
-success = kernel32.SetConsoleCtrlHandler(cc_h, True)
-if not success:
-	ValueError("SetConsoleCtrlHandler failed")
+# ctrlc_callback_type = ctypes.WINFUNCTYPE(None, ctypes.c_int)
+# cc_h = ctrlc_callback_type(ctrlc_handler)
+# success = kernel32.SetConsoleCtrlHandler(cc_h, True)
+# if not success:
+	# ValueError("SetConsoleCtrlHandler failed")
 
 #########################################
 # Run Tracker

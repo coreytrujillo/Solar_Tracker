@@ -9,9 +9,11 @@ import ctypes
 import importlib
 import pandas as pd # For data analysis
 import ephem as ep # For predicting Sun's position
-import Header
-from Header import * # Global variables
+# import Header
+# from Header import * # Global variables
 
+# CSV separator
+sep = ','
 
 # Connect with LabJack
 def find_LJ():
@@ -63,7 +65,7 @@ def init_files(fd_path, fl_path, info, header):
 			
 			# Start data file
 			fd = open(fd_path, 'x')
-			fd.write(header)
+			fd.write(header + '\n')
 			fd.close()
 			break
 		
@@ -186,15 +188,15 @@ def normalize_mag(lo, hi, inp):
 	# hi = highest possible magnetometer output
 	m = 2/(hi - lo) # slope
 	b = 1-m*hi # intercept
-	output = m*inp + b # y = mx + b
+	outp = m*inp + b # y = mx + b
 	
 	# If an unexpected value is received, output that value to the log file
-	if output > 1 or output < -1:
+	if outp > 1 or outp < -1:
 		print('Unexpected Value in Nomalization:', inp)
 		fl = open(fl_path, 'a')
 		fl.write('Mag value out of range! Received: ' + str(inp) + 'Should have received' + str(lo) + 'or' + str(hi) + '\n')
 		fl.close
-	return output
+	return outp
 
 
 # Read Compass and Acceleromter
@@ -419,7 +421,7 @@ def read_PM(PM_fpath):
 
 # Build header for data file
 # This function depends on global variables
-def build_header():
+def build_header(TCON, TC_num, PyrON, ComAccelON, LTON, PMON):
 	
 	header = 'Time'
 	if TCON == 1:
@@ -439,12 +441,12 @@ def build_header():
 	if PMON == 1:
 		header = header + ',Power'
 
-	header = header + '\n'
+	header = header
 	return header
 
 # This function reads all requested instruments outputs their values to an output string
 # It depends on global variables
-def collect_data(handle):
+def collect_data(handle, TCON, TC_num, TC_AIN_start, PyrON, Pyr_AIN, ComAccelON, LTON, AIN_D, AIN_NS, AIN_EW, PMON, PM_fpath):
 	# Initiate output string
 	outstr =  datetime.now().strftime('%H:%M:%S.%f')
 	
@@ -484,7 +486,8 @@ def collect_data(handle):
 ########################################
 # Tracker function
 
-def Track(handle):
+# def Track(handle):
+def Track(handle, AIN_NS, LT_moveN, LT_stopN, FION, LT_moveS, LT_stopS, FIOS, AIN_EW, LT_moveW, LT_stopW, FIOW, LT_moveE, LT_stopE, FIOE):
 	# Move North
 	if ljm.eReadName(handle, AIN_NS) < LT_moveN:
 		while ljm.eReadName(handle, AIN_NS) < LT_stopN:
@@ -500,10 +503,11 @@ def Track(handle):
 		ljm.eWriteName(handle, FIOS, 0)
 	
 	# Move West
-	while ljm.eReadName(handle, AIN_EW) < LT_stopW:
-		print('Moving West. LT EW: ', ljm.eReadName(handle, AIN_EW))
-		ljm.eWriteName(handle, FIOW, 1)
-	ljm.eWriteName(handle, FIOW, 0)
+	if ljm.eReadName(handle, AIN_EW) < LT_moveW:
+		while ljm.eReadName(handle, AIN_EW) < LT_stopW:
+			print('Moving West. LT EW: ', ljm.eReadName(handle, AIN_EW))
+			ljm.eWriteName(handle, FIOW, 1)
+		ljm.eWriteName(handle, FIOW, 0)
 	
 	# Move East
 	if ljm.eReadName(handle, AIN_EW) > LT_moveE:
