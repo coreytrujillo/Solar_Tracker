@@ -489,29 +489,43 @@ def collect_data(handle, TCON, TC_num, TC_AIN_start, PyrON, Pyr_AIN, ComAccelON,
 # def Track(handle):
 def Track(handle, AIN_NS, LT_moveN, LT_stopN, FION, LT_moveS, LT_stopS, FIOS, AIN_EW, LT_moveW, LT_stopW, FIOW, LT_moveE, LT_stopE, FIOE):
 	# Move North
-	if ljm.eReadName(handle, AIN_NS) < LT_moveN:
-		while ljm.eReadName(handle, AIN_NS) < LT_stopN:
-			ljm.eWriteName(handle, FION,1)
-			print('Move North. LT NS: ', ljm.eReadName(handle, AIN_NS))
+	try:
+		if ljm.eReadName(handle, AIN_NS) < LT_moveN:
+			while ljm.eReadName(handle, AIN_NS) < LT_stopN:
+				ljm.eWriteName(handle, FION,1)
+				print('Move North. LT NS: ', ljm.eReadName(handle, AIN_NS))
+			ljm.eWriteName(handle, FION, 0)
+		
+		# Move South
+		if ljm.eReadName(handle, AIN_NS) > LT_moveS:
+			while ljm.eReadName(handle, AIN_NS) > LT_stopS:
+				ljm.eWriteName(handle, FIOS,1)
+				print('Move South. LT NS: ', ljm.eReadName(handle, AIN_NS))
+			ljm.eWriteName(handle, FIOS, 0)
+		
+		# Move West
+		if ljm.eReadName(handle, AIN_EW) < LT_moveW:
+			while ljm.eReadName(handle, AIN_EW) < LT_stopW:
+				print('Moving West. LT EW: ', ljm.eReadName(handle, AIN_EW))
+				ljm.eWriteName(handle, FIOW, 1)
+			ljm.eWriteName(handle, FIOW, 0)
+		
+		# Move East
+		if ljm.eReadName(handle, AIN_EW) > LT_moveE:
+			while ljm.eReadName(handle, AIN_EW) > LT_stopE:
+				print('Moving East. LT EW: ', ljm.eReadName(handle, AIN_EW))
+				ljm.eWriteName(handle, FIOE, 1)
+			ljm.eWriteName(handle, FIOE, 0)
+	except:
 		ljm.eWriteName(handle, FION, 0)
-	
-	# Move South
-	if ljm.eReadName(handle, AIN_NS) > LT_moveS:
-		while ljm.eReadName(handle, AIN_NS) > LT_stopS:
-			ljm.eWriteName(handle, FIOS,1)
-			print('Move South. LT NS: ', ljm.eReadName(handle, AIN_NS))
 		ljm.eWriteName(handle, FIOS, 0)
-	
-	# Move West
-	if ljm.eReadName(handle, AIN_EW) < LT_moveW:
-		while ljm.eReadName(handle, AIN_EW) < LT_stopW:
-			print('Moving West. LT EW: ', ljm.eReadName(handle, AIN_EW))
-			ljm.eWriteName(handle, FIOW, 1)
 		ljm.eWriteName(handle, FIOW, 0)
-	
-	# Move East
-	if ljm.eReadName(handle, AIN_EW) > LT_moveE:
-		while ljm.eReadName(handle, AIN_EW) > LT_stopE:
-			print('Moving East. LT EW: ', ljm.eReadName(handle, AIN_EW))
-			ljm.eWriteName(handle, FIOE, 1)
 		ljm.eWriteName(handle, FIOE, 0)
+		in1 = input('Would you like to continue? (y/n) \n')
+		while True:
+			if in1 == 'y':
+				break
+			elif in1 == 'n':
+				exit()
+			else:
+				in1 = input('Invalid input. Please enter y or n. \n')
