@@ -2,9 +2,10 @@
 # File Input
 #########################
 
-floc = './test/'
-# floc = '../../Experiments/210609_Dry_Soil/' # Working Directory
-frootname = 'test' # File name root (do NOT include date code)
+# floc = './test/'
+# frootname = 'test'
+floc = '../../Experiments/210622_Power_Benchmark/' # Working Directory
+frootname = 'Power_Benchmark' # File name root (do NOT include date code)
 
 #########################
 # On / Off Variables
@@ -15,7 +16,7 @@ LJON = 1 # LabJack
 TrackON = 1 # Tracker
 
 # Sensor on/of (1 = on, 0 = off)
-TCON = 1 # Thermocouples
+TCON = 0 # Thermocouples
 PyrON = 1 # Pyrheliometer
 ComAccelON = 0 # Compass and Accelerometer
 LTON = 1 # Light Tower
@@ -43,8 +44,8 @@ AIN_EW = 'AIN11' # EW LT AIN
 # Tracker Variables
 ###################################
 # Optimal light tower values (mV)
-LTNS_opt = 6
-LTEW_opt = 6
+LTNS_opt =  6.5
+LTEW_opt = 5
 
 # Cycle Time (sec)
 cycletime = 30
@@ -74,7 +75,7 @@ LT_stopE = LT_moveW + LTEW_backstop
 LT_stopW = LT_moveE - LTEW_backstop
 
 # Print NSEW values
-if LT_debug == 1:
+if 1==1: #LT_debug == 1:
 	print('Move East', LT_moveE)
 	print('Stop East', LT_stopE)
 	print('Move West', LT_moveW)
