@@ -36,6 +36,7 @@ end
 
 
 -- Configure the I2C Bus
+--  I2C.config(SDA, SCL, Speed, Options, Address)
 I2C.config(0, 1, 65516, 0, MAG_ADDRESS, 0)
 local addrs = I2C.search(0, 127)
 local addrslen = table.getn(addrs)
@@ -59,19 +60,21 @@ end
 -- Change the target to the magnetometer
 MB.writeName("I2C_SLAVE_ADDRESS", MAG_ADDRESS)
 -- Data Output Rate set (30Hz), disable temp sensor
-I2C.write({0x00, 0x14})
+I2C.write({0x00, 0x1C})
 -- Amplifier Gain set (+-1.3 Gauss)
+-- 10000000 = 0x80 (+/- 4 Gauss)
+-- 11100000 = 0xE0 (+/- 8.1 Gauss)
 I2C.write({0x01, 0x20})
 -- Set mode (continous conversion)
 I2C.write({0x02, 0x00})
 -- Change the target to the accelerometer
 MB.writeName("I2C_SLAVE_ADDRESS", ACCEL_ADDRESS)
 --Data Rate: 10Hz, disable low-power, enable all axes
-I2C.write({0x20, 0x27})
+I2C.write({0x20, 0x77})
 -- Continuous update, LSB at lower addr, +- 2g, Hi-Res disable
 I2C.write({0x23, 0x49})
 
-LJ.IntervalConfig(0, 500)
+LJ.IntervalConfig(0, 50)
 while true do
   if LJ.CheckInterval(0) then
     -- Change the target to the magnetometer
@@ -85,9 +88,9 @@ while true do
     end
     local magdata = {}
     -- Convert the data into useful gauss values
-    table.insert(magdata, convert_16_bit(rawmagdata[1], rawmagdata[2], 1))
-    table.insert(magdata, convert_16_bit(rawmagdata[3], rawmagdata[4], 1))
-    table.insert(magdata, convert_16_bit(rawmagdata[5], rawmagdata[6], 1))
+    table.insert(magdata, convert_16_bit(rawmagdata[1], rawmagdata[2], 1100))
+    table.insert(magdata, convert_16_bit(rawmagdata[3], rawmagdata[4], 980))
+    table.insert(magdata, convert_16_bit(rawmagdata[5], rawmagdata[6], 1100))
     -- Change the target to the accelerometer
     MB.writeName("I2C_SLAVE_ADDRESS", ACCEL_ADDRESS)
     local rawacceldata = {}

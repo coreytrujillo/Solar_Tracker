@@ -13,6 +13,13 @@ from Header import *
 if LJON == 1:
 	[handle, info] = find_LJ() # Connect to LabJack and collect information on it
 
+# Set TC AIN range
+# if TCON == 1:
+	# TC_AIN_range = 0.1
+	# for i in range(TC_AIN_start,TC_AIN_start+TC_num):
+		# TC_range_name = 'AIN' + str(i) + '_RANGE'
+		# ljm.eWriteName(handle, TC_range_name, TC_AIN_range)
+
 # Compass/Accelerometer Setup
 if ComAccelON == 1:
 	# Set up voltage output
@@ -25,6 +32,12 @@ if ComAccelON == 1:
 # Check Power Meter On
 if PMON == 1:
 	check_PM(PM_fpath)
+
+# Adjust Pyrheliometer AIN sensitivity
+if PyrON == 1:
+	Pyr_range_name = Pyr_AIN + '_RANGE'
+	Pyr_AIN_range = 0.01
+	ljm.eWriteName(handle, Pyr_range_name, Pyr_AIN_range)
 
 # Initiate log and data files
 header = build_header(TCON, TC_num, PyrON, ComAccelON, LTON, PMON) # Create Header\
@@ -67,7 +80,7 @@ while True:
 	importlib.reload(Header)
 	from Header import *
 	
-	if TrackON == 0:
+	if LJON == 0:
 		handle = 0
 	outstr = collect_data(handle, TCON, TC_num, TC_AIN_start, PyrON, Pyr_AIN, ComAccelON, LTON, AIN_D, AIN_NS, AIN_EW, PMON, PM_fpath) # Collect data
 	append_data_file(fd_path, outstr) # Add data to data file
