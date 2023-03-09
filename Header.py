@@ -4,8 +4,8 @@
 
 # floc = './test/'
 # frootname = 'test'
-floc = '../../Experiments/210622_Power_Benchmark/' # Working Directory
-frootname = 'Power_Benchmark' # File name root (do NOT include date code)
+floc = '../../../Box_Concept/Box_Experiments/221018_HiRez_Quartz/' # Working Directory
+frootname = 'HiRez_Quartz' # File name root (do NOT include date code)
 
 #########################
 # On / Off Variables
@@ -13,32 +13,50 @@ frootname = 'Power_Benchmark' # File name root (do NOT include date code)
 
 # Mechanism on/of (1 = on, 0 = off)
 LJON = 1 # LabJack
-TrackON = 1 # Tracker
+TrackON = 0 # Tracker
 
 # Sensor on/of (1 = on, 0 = off)
-TCON = 0 # Thermocouples
-PyrON = 1 # Pyrheliometer
-ComAccelON = 0 # Compass and Accelerometer
-LTON = 1 # Light Tower
-PMON = 1 # Power Meter
+TCON = 1 # Thermocouples
+CJCON = 1 # Cold Junction Sensor
 
-# Debuggers
-LT_debug = 1
+PyrON = 1 # Pyrheliometer
+LTON = 1 # Light Tower
+
+PMON = 0 # Power Meter
+ComAccelON = 0 # Compass and Accelerometer
 
 #####################################
 # Sensor AIN assignments
 ###################################
+# AIN numbers on expansion boards for thermocouples
+X2 = [0, 1, 2, 3, 120, 121, 122, 123, 124, 125, 126, 127]
+X3 = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61]
+X4 = [72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85]
+X5 = [96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109]
+
+# Which Board is plugged into which port
+B1 = X2
+B2 = X3
+B3 = X4
+B4 = X5
+
 # TC Input
-TC_num = 8 # Number of Thermocouples
-TC_AIN_start = 0 # AIN start for thermocouples
+# TC_AIN_vec = B1[5:12] + B2 + B3 + B4
+TC_AIN_vec = B1[5:12] + B2 + B3[0:6]
 
-# Pyrheliometer Input
-Pyr_AIN = 'AIN12' # Pyr AIN
+TC_num = len(TC_AIN_vec) # Number of Thermocouples
+TC_AIN_start = TC_AIN_vec[0] # AIN start for thermocouples
 
-# Light Tower
-AIN_D = 'AIN9' # Direct LT AIN
-AIN_NS = 'AIN10' # NS LT AIN
-AIN_EW = 'AIN11' # EW LT AIN
+# Cold junction AIN
+CJCAIN = B1[0]
+
+# Light Tower AINs
+AIN_D = 'AIN' + str(B1[1])# Direct LT AIN (Brown Wire)
+AIN_NS = 'AIN' + str(B1[2]) # NS LT AIN (White Wire)
+AIN_EW = 'AIN' + str(B1[3]) #'AIN99' # EW LT AIN (Green Wire)
+
+# Pyrheliometer Input AINs
+Pyr_AIN = 'AIN' + str(B1[4]) # Pyr AIN
 
 ###################################
 # Tracker Variables
@@ -53,16 +71,16 @@ cycletime = 30
 # Light Tower variances and boundaries
 LTNS_var_N = 0.5#0.40
 LTNS_var_S = LTNS_var_N
-LTEW_var_E = 1
-LTEW_var_W = 2.5
+LTEW_var_E = 0.2
+LTEW_var_W = 2
 LTNS_backstop = 0.05
-LTEW_backstop = 0.4
+LTEW_backstop = 0.1
 
 # NSEW Relay Controls
-FIOS = 'FIO2' # South
-FION = 'FIO3' # North
-FIOW = 'FIO4' # West
-FIOE = 'FIO5' # East
+FIOS = 'FIO0' # South
+FION = 'FIO1' # North
+FIOW = 'FIO2' # West
+FIOE = 'FIO3' # East
 
 # Light Tower move and stop values
 LT_moveN = LTNS_opt - LTNS_var_S
@@ -75,7 +93,7 @@ LT_stopE = LT_moveW + LTEW_backstop
 LT_stopW = LT_moveE - LTEW_backstop
 
 # Print NSEW values
-if 1==1: #LT_debug == 1:
+if False: #LT_debug == 1:
 	print('Move East', LT_moveE)
 	print('Stop East', LT_stopE)
 	print('Move West', LT_moveW)
@@ -85,6 +103,8 @@ if 1==1: #LT_debug == 1:
 	print('Move South', LT_moveS)
 	print('Stop South', LT_stopS)
 	print('---------------------')
+
+
 ## Don't Change anything below this line!
 ##############################################################################
 # File paths
@@ -92,6 +112,9 @@ if 1==1: #LT_debug == 1:
 from datetime import datetime
 fd_path = floc + datetime.now().strftime('%y%m%d') + '_' + frootname + '_data.csv' # Data file path
 fl_path = floc + datetime.now().strftime('%y%m%d') + '_' + frootname + '.log' # Log file path
+
+# fd_path = floc + '220315' + '_' + frootname + '_data.csv' # Data file path
+
 
 # Power meter
 

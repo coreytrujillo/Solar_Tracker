@@ -24,23 +24,34 @@ def daily_sun_angles(andate, lablat, lablon, labelev, minel):
 	SNel = sun.alt # Elevation angle at solar noon
 	SNaz = sun.az # Azimuth angle at solar noon 
 	
+	
 	# If solar noon is less than minimum collector operation angle
+	rUTC = 0
+	rloc = rUTC
+	sUTC = rUTC
+	sloc = rUTC
+	raz = rUTC
+	baz = rUTC  
+	bm = rUTC
+	bTloc = rUTC
 	if SNel >= lab.horizon:
 		rUTC = lab.next_rising(sun) # Time sun rises above min collector angle UTC
 		raz = sun.az*180/pi
 		rloc = ep.localtime(rUTC) # Time sun rises above min collector angle MT
 		sUTC = lab.next_setting(sun) # Time sun falls below min angle UTC
 		sloc = ep.localtime(sUTC) # Time sun falls below min angle MT
-	
-	# If sun never rises above operable angle
-	else:
-		rUTC = 0
-		rloc = rUTC
-		sUTC = rUTC
-		sloc = rUTC
-		raz = rUTC
 		
-	return SNloc, SNel, rloc, raz, sloc
+		# Calculate time sun will be past building
+		baz = raz # Initialize building azimuth angle
+		bm = minel # Initialize min elevation angle
+		while baz < 130:
+			bm = bm + 0.1 # Increase horizon angle slightly
+			lab.horizon = str(bm) # Recalculate horizon position
+			bUTC = lab.next_rising(sun) # Calculate time sun will be over new horizon
+			bTloc = ep.localtime(bUTC) # Convert from UTC to locall time
+			baz = sun.az*180/pi # Get Azimuth angle
+	
+	return SNloc, SNel, rloc, raz, sloc, baz, bm, bTloc
 
 # Location and operation setup
 lablat = 39.781763 # lab latitude
@@ -51,15 +62,17 @@ d0 = dt.datetime.now() # Start date (today)
 RunHours = 2 #dt.timedelta(hours=2) # Minimum number of hours for operating collectors
 
 # Today's data
-[SNloc, SNel, rloc, raz, sloc] = daily_sun_angles(d0, lablat, lablon, labelev, minel)
+[SNloc, SNel, rloc, raz, sloc, baz, bm, bTloc] = daily_sun_angles(d0, lablat, lablon, labelev, minel)
 print('----------------------------')
 print('-----------TODAY------------')
 print('----------------------------')
-print('Today the sun will rise above', minel, 'degrees elevation at', rloc, '\n at that time the azimuth angle will be ', raz, '\n The sun will set below', minel, 'degrees elevation at', sloc)
+print('Today the sun will rise above', minel, 'degrees elevation at', rloc, 'and will set below', minel, 'degrees elevation at', sloc, '\n at that time the azimuth angle will be ', raz)
+print('\n The approximate azimuth angle of the builiding is 130 degrees', '\n At', bTloc, 'the azimuth angle will be', baz, 'and the elevation angle will be', bm)
+
 
 # Tomorrow's data
 d1 = d0 + dt.timedelta(days=1)
-[SNloc1, SNel1, rloc1, raz1, sloc1] = daily_sun_angles(d1, lablat, lablon, labelev, minel)
+[SNloc1, SNel1, rloc1, raz1, sloc1, baz, bm, bTloc] = daily_sun_angles(d1, lablat, lablon, labelev, minel)
 print('----------------------------')
 print('----------TOMORROW----------')
 print('----------------------------')
@@ -72,12 +85,13 @@ dv = [] # Date vector
 sr = [] # Time Sun rises above min operable elevation angle
 ss = [] # Time Sun sets below min operable elevation angle
 bo = [] # blackout
-razv = []
+razv = [] # Azimuth angle vector
+bTlv = [] # Building azimuth angle vector
 
 
 for i in range(0,200):
 	# Calculate angles and times for day i
-	[SNloc, SNel, rloc, raz, sloc] = daily_sun_angles(d0, lablat, lablon, labelev, minel)
+	[SNloc, SNel, rloc, raz, sloc, baz, bm, bTloc] = daily_sun_angles(d0, lablat, lablon, labelev, minel)
 	
 	# Operable time
 	OT = sloc-rloc 
@@ -97,6 +111,12 @@ for i in range(0,200):
 		sunset = sloc - MN 
 		sunset = sunset.total_seconds()/3600
 		
+		# Calculate building shadow stop time
+		if bTloc != 0:
+			bTl = bTloc - MN
+			bTl = bTl.total_seconds()/3600
+		else:
+			bTl = None
 	# If no operable time
 	else:
 		sunrise = None
@@ -113,6 +133,7 @@ for i in range(0,200):
 	sr.append(sunrise)
 	ss.append(sunset)
 	razv.append(raz)
+	bTlv.append(bTl)
 	
 	# Iterate day
 	d0 = d0 + dt.timedelta(days=1)
@@ -140,12 +161,13 @@ plt.plot(dv, OTV)
 plt.subplot(122)
 titlestr2 = 'Hour of day sun rises or sets above/below ' + str(minel) + ' degrees elevation'
 plt.title(titlestr)
-plt.title('Hour of day sun rises/sets above/below collector operation angle')
+plt.title('Hour of day sun rises/sets above/below collector operation angle or building')
 plt.plot(dv,sr)
 plt.plot(dv,ss)
+plt.plot(dv,bTlv)
 plt.xlabel('Date')
 plt.ylabel('Hour of day')
-plt.legend(['Sunrise', 'Sunset'])
+plt.legend(['Sunrise', 'Sunset', 'Building Az'])
 
 # Azimuth angle at sunrise
 plt.subplot(223)

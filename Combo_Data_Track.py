@@ -8,8 +8,6 @@ from Header import *
 ## Setup
 ##################################
 # LJ Setup
-# if LJON == 1:
-	# [handle, info] = find_LJ() # Connect to LabJack and collect information on it
 if LJON == 1:
 	[handle, info] = find_LJ() # Connect to LabJack and collect information on it
 
@@ -40,7 +38,7 @@ if PyrON == 1:
 	ljm.eWriteName(handle, Pyr_range_name, Pyr_AIN_range)
 
 # Initiate log and data files
-header = build_header(TCON, TC_num, PyrON, ComAccelON, LTON, PMON) # Create Header\
+header = build_header(CJCON, TCON, TC_num, PyrON, ComAccelON, LTON, PMON) # Create Header
 if LJON == 1:
 	init_files(fd_path, fl_path, info, header) # Initiate files (if necessary)
 else:
@@ -66,7 +64,6 @@ success = kernel32.SetConsoleCtrlHandler(cc_h, True)
 if not success:
 	ValueError("SetConsoleCtrlHandler failed")
 
-
 ##################################
 ## Run
 ##################################
@@ -82,23 +79,25 @@ while True:
 	
 	if LJON == 0:
 		handle = 0
-	outstr = collect_data(handle, TCON, TC_num, TC_AIN_start, PyrON, Pyr_AIN, ComAccelON, LTON, AIN_D, AIN_NS, AIN_EW, PMON, PM_fpath) # Collect data
+	outstr = collect_data(handle, CJCON, CJCAIN, TCON, TC_num, TC_AIN_start, TC_AIN_vec, PyrON, Pyr_AIN, ComAccelON, LTON, AIN_D, AIN_NS, AIN_EW, PMON, PM_fpath) # Collect data
 	append_data_file(fd_path, outstr) # Add data to data file
 	
 	# Print output to screen
-	print('Iteration:', iter)
+	# print('Iteration:', iter)
 	print(header)
 	print(outstr)
 	
 	# Prepare for next loop
 	iter = iter + 1
-	time.sleep(0.1)
+	ctime1 = time.perf_counter() # Check cycle end time 
+	dct = ctime1 - ctime0
+	if dct < 0.1:
+		time.sleep(0.1)
 	
 	# If cycle time is up, track
 	if TrackON == 1:
-		ctime1 = time.perf_counter() # Check cycle end time 
-		dct = ctime1 - ctime0
-		print('Cycle Time: %0.1f seconds ' %dct)
+		
+		# print('Cycle Time: %0.1f seconds ' %dct)
 		
 		# If cycle time is up, track
 		if dct > cycletime:
